@@ -1,0 +1,30 @@
+{
+    "common": {
+        "lib": ["sklearn"],
+        "data-format": ["pandas"],
+        "data-order": ["F"],
+        "dtype": ["float64"]
+    },
+    "cases": [
+
+        {
+            "algorithm": "kmeans",
+            "dataset": [
+                {
+                    "source": "synthetic",
+                    "type": "blobs",
+                    "n_clusters": 1000,
+                    "n_features": 20,
+                    "training": {
+                        "n_samples": 1000000
+                    }
+                }
+            ],
+            "time-method": ["box_filter"],
+            "time-limit": [50],
+            "n-clusters": [1000],
+            "maxiter": [50],
+            "tol": [0.0]
+        }
+    ]
+}
