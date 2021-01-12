@@ -184,6 +184,8 @@ def runner(args):
                         for var in config['omp_env']:
                             env[var] = omp_env[var]
                     for i, case in enumerate(cases):
+                        logging.info(args)
+                        logging.info(args["project_location"])
                         command = 'python ' + args["project_location"] +f'{lib}_bench/{algorithm}.py ' \
                                   + no_intel_optimize \
                                   + f'--arch {hostname} {case} {paths} ' \
