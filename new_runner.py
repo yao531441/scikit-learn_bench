@@ -184,7 +184,7 @@ def runner(args):
                         for var in config['omp_env']:
                             env[var] = omp_env[var]
                     for i, case in enumerate(cases):
-                        command = f'python {lib}_bench/{algorithm}.py ' \
+                        command = 'python ' + args["project_location"] +f'{lib}_bench/{algorithm}.py ' \
                                   + no_intel_optimize \
                                   + f'--arch {hostname} {case} {paths} ' \
                                   + f'--dataset-name {dataset_name}'
@@ -234,6 +234,7 @@ def runner(args):
 
 if __name__ =="__main__":
     args = {
+        "project_location":"/home/qyao/gitspace/scikit-learn_bench/",
         "configs": "configs/skl_config_small.json",
         "dummy_run": False,
         "no_intel_optimized": False,
