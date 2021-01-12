@@ -1,4 +1,4 @@
-#===============================================================================
+# ===============================================================================
 # Copyright 2020 Intel Corporation
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
@@ -12,7 +12,7 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
-#===============================================================================
+# ===============================================================================
 
 import argparse
 import os
@@ -27,7 +27,7 @@ import skl_utils
 
 from datasets.load_datasets import try_load_dataset
 
-
+cases = ['']
 def generate_cases(params):
     '''
     Generate cases for benchmarking by iterating of
@@ -44,37 +44,17 @@ def generate_cases(params):
     for i in range(n_param_values):
         for j in range(prev_length):
             cases[prev_length * i + j] += f' {dashes}{param_name} ' \
-                + f'{params[param_name][i]}'
+                                          + f'{params[param_name][i]}'
     del params[param_name]
     generate_cases(params)
 
 
-if __name__ == '__main__':
+def runner(args):
 
-    parser = argparse.ArgumentParser()
-    parser.add_argument('--configs', metavar='ConfigPath', type=str,
-                        default='configs/config_example.json',
-                        help='Path to configuration files')
-    parser.add_argument('--dummy-run', default=False, action='store_true',
-                        help='Run configuration parser and datasets generation'
-                             'without benchmarks running')
-    parser.add_argument('--no-intel-optimized', default=False, action='store_true',
-                        help='Use no intel optimized version. '
-                             'Now avalible for scikit-learn benchmarks'),
-    parser.add_argument('--output-file', default='results.json',
-                        type=argparse.FileType('w'),
-                        help='Output file of benchmarks to use with their runner')
-    parser.add_argument('--verbose', default='INFO', type=str,
-                        choices=("ERROR", "WARNING", "INFO", "DEBUG"),
-                        help='Print additional information during benchmarks running')
-    parser.add_argument('--report', default=False, action='store_true',
-                        help='Create an Excel report based on benchmarks results. '
-                             'Need "openpyxl" library')
-    args = parser.parse_args()
     env = os.environ.copy()
-    print(args)
+    global cases
     logging.basicConfig(
-        stream=sys.stdout, format='%(levelname)s: %(message)s', level=args.verbose)
+        stream=sys.stdout, format='%(levelname)s: %(message)s', level=args["verbose"])
     hostname = socket.gethostname()
 
     # make directory for data if it doesn't exist
@@ -83,7 +63,7 @@ if __name__ == '__main__':
     json_result = {'hardware': {}, 'software': {}, 'results': []}
     is_successful = True
 
-    for config_name in args.configs.split(','):
+    for config_name in args["configs"].split(','):
         logging.info(f'Config: {config_name}')
         with open(config_name, 'r') as config_file:
             config = json.load(config_file)
@@ -137,6 +117,8 @@ if __name__ == '__main__':
                 elif dataset['source'] == 'synthetic':
                     class GenerationArgs:
                         pass
+
+
                     gen_args = GenerationArgs()
                     paths = ''
 
@@ -181,7 +163,7 @@ if __name__ == '__main__':
                         if gen_args.type not in ['blobs']:
                             gen_args.fileytest = gen_args.filey
 
-                    if not args.dummy_run and not os.path.isfile(gen_args.filex):
+                    if not args["dummy_run"] and not os.path.isfile(gen_args.filex):
                         if gen_args.type == 'regression':
                             make_datasets.gen_regression(gen_args)
                         elif gen_args.type == 'classification':
@@ -195,7 +177,7 @@ if __name__ == '__main__':
 
                 omp_env = skl_utils.get_omp_env()
                 no_intel_optimize = \
-                    '--no-intel-optimized ' if args.no_intel_optimized else ''
+                    '--no-intel-optimized ' if args["no_intel_optimized"] else ''
                 for lib in libs:
                     env = os.environ.copy()
                     if lib == 'xgboost':
@@ -203,13 +185,13 @@ if __name__ == '__main__':
                             env[var] = omp_env[var]
                     for i, case in enumerate(cases):
                         command = f'python {lib}_bench/{algorithm}.py ' \
-                            + no_intel_optimize \
-                            + f'--arch {hostname} {case} {paths} ' \
-                            + f'--dataset-name {dataset_name}'
+                                  + no_intel_optimize \
+                                  + f'--arch {hostname} {case} {paths} ' \
+                                  + f'--dataset-name {dataset_name}'
                         while '  ' in command:
                             command = command.replace('  ', ' ')
                         logging.info(command)
-                        if not args.dummy_run:
+                        if not args["dummy_run"]:
                             case = f'{lib},{algorithm} ' + case
                             stdout, stderr = skl_utils.read_output_from_command(
                                 command)
@@ -220,26 +202,25 @@ if __name__ == '__main__':
 
                             if extra_stdout != '':
                                 stderr += f'CASE {case} EXTRA OUTPUT:\n' \
-                                    + f'{extra_stdout}\n'
+                                          + f'{extra_stdout}\n'
                             try:
                                 json_result['results'].extend(
                                     json.loads(stdout))
                             except json.JSONDecodeError as decoding_exception:
                                 stderr += f'CASE {case} JSON DECODING ERROR:\n' \
-                                    + f'{decoding_exception}\n{stdout}\n'
+                                          + f'{decoding_exception}\n{stdout}\n'
                             if stderr != '':
                                 is_successful = False
                                 logging.warning('Error in benchmark: \n' + stderr)
-    sdsd = args.output_file
-    json.dump(json_result, args.output_file, indent=4)
-    name_result_file = args.output_file.name
-    args.output_file.close()
+    with open(args["output_file"], 'w') as f:
+        json.dump(json_result, f, indent=4)
+    name_result_file = args["output_file"]
 
-    if args.report:
+    if args["report"]:
         command = 'python report_generator/report_generator.py ' \
-            + f'--result-files {name_result_file} '              \
-            + f'--report-file {name_result_file}.xlsx '          \
-            + '--generation-config report_generator/default_report_gen_config.json'
+                  + f'--result-files {name_result_file} ' \
+                  + f'--report-file {name_result_file}.xlsx ' \
+                  + '--generation-config report_generator/default_report_gen_config.json'
         logging.info(command)
         stdout, stderr = skl_utils.read_output_from_command(command)
         if stderr != '':
@@ -249,3 +230,15 @@ if __name__ == '__main__':
     if not is_successful:
         logging.warning('benchmark running had runtime errors')
         sys.exit(1)
+
+
+if __name__ =="__main__":
+    args = {
+        "configs": "configs/skl_config_small.json",
+        "dummy_run": False,
+        "no_intel_optimized": False,
+        "output_file": "/home/qyao/gitspace/scikit-learn_bench/results.json",
+        "report": False,
+        "verbose": "INFO"
+    }
+    runner(args)

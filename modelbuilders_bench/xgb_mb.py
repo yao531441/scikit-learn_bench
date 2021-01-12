@@ -23,7 +23,7 @@ import daal4py
 import numpy as np
 from os import environ
 import xgboost as xgb
-import utils
+import skl_utils
 
 parser = argparse.ArgumentParser(
     description='xgboost gbt + model transform + daal predict benchmark')
@@ -115,7 +115,7 @@ if params.objective.startswith('reg'):
     metric_name, metric_func = 'rmse', bench.rmse_score
 else:
     task = 'classification'
-    metric_name, metric_func = 'accuracy[%]', utils.get_accuracy
+    metric_name, metric_func = 'accuracy[%]', skl_utils.get_accuracy
     if 'cudf' in str(type(y_train)):
         params.n_classes = y_train[y_train.columns[0]].nunique()
     else:
@@ -164,14 +164,14 @@ else:
         predict_algo.compute, X_test, model_daal, params=params)
     test_metric_daal = metric_func(y_test, daal_pred.prediction)
 
-utils.print_output(library='modelbuilders',
-                   algorithm=f'xgboost_{task}_and_modelbuilder',
-                   stages=['xgboost_train', 'xgboost_predict', 'daal4py_predict'],
-                   params=params, functions=['xgb_dmatrix', 'xgb_dmatrix',
+skl_utils.print_output(library='modelbuilders',
+                       algorithm=f'xgboost_{task}_and_modelbuilder',
+                       stages=['xgboost_train', 'xgboost_predict', 'daal4py_predict'],
+                       params=params, functions=['xgb_dmatrix', 'xgb_dmatrix',
                                              'xgb_train', 'xgb_predict',
                                              'xgb_to_daal', 'daal_compute'],
-                   times=[t_creat_train, t_train, t_creat_test, t_xgb_pred,
+                       times=[t_creat_train, t_train, t_creat_test, t_xgb_pred,
                           t_trans, t_daal_pred],
-                   accuracy_type=metric_name,
-                   accuracies=[train_metric, test_metric_xgb, test_metric_daal],
-                   data=[X_train, X_test, X_test])
+                       accuracy_type=metric_name,
+                       accuracies=[train_metric, test_metric_xgb, test_metric_daal],
+                       data=[X_train, X_test, X_test])

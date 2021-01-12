@@ -19,7 +19,7 @@ import os
 import argparse
 sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 import bench
-import utils
+import skl_utils
 
 import daal4py
 import lightgbm as lgbm
@@ -97,7 +97,7 @@ if params.objective.startswith('reg'):
     metric_name, metric_func = 'rmse', bench.rmse_score
 else:
     task = 'classification'
-    metric_name, metric_func = 'accuracy[%]', utils.get_accuracy
+    metric_name, metric_func = 'accuracy[%]', skl_utils.get_accuracy
     if 'cudf' in str(type(y_train)):
         params.n_classes = y_train[y_train.columns[0]].nunique()
     else:
@@ -142,7 +142,7 @@ else:
         predict_algo.compute, X_test, model_daal, params=params)
     test_metric_daal = metric_func(y_test, daal_pred.prediction)
 
-utils.print_output(
+skl_utils.print_output(
     library='modelbuilders', algorithm=f'lightgbm_{task}_and_modelbuilder',
     stages=['lgbm_train', 'lgbm_predict', 'daal4py_predict'],
     params=params, functions=['lgbm_dataset', 'lgbm_dataset', 'lgbm_train',
