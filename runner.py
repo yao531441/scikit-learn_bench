@@ -50,7 +50,7 @@ def generate_cases(params):
 
 
 if __name__ == '__main__':
-
+    print("strat")
     parser = argparse.ArgumentParser()
     parser.add_argument('--configs', metavar='ConfigPath', type=str,
                         default='configs/config_example.json',
